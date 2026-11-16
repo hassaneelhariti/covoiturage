@@ -1,0 +1,47 @@
+{% extends 'base.html.twig' %}
+{% block head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+{% endblock %}
+{% block body %}
+<div class="card"><h1>Publier un trajet</h1>
+<form method="post" id="tripform">
+    <div class="row">
+        <div><label>Véhicule</label><select name="vehicle">{% for v in app.user.vehicles %}<option value="{{ v.id }}">{{ v }}</option>{% endfor %}</select></div>
+        <div><label>Places proposées</label><input type="number" name="seats" min="1" max="8" value="3"></div>
+        <div><label>Tarif (MAD/km)</label><input name="rate" id="rate" value="{{ defaultRate }}" size="5"></div>
+    </div>
+    <h3>Arrêts <span class="muted">(départ, étapes, arrivée — laissez vide les lignes inutiles)</span></h3>
+    {% for i in 0..5 %}
+    <div class="row">
+        <div><label>{{ i == 0 ? 'Départ' : 'Arrêt ' ~ (i + 1) }}</label>
+            <select name="stops[{{ i }}][city]" class="stopcity"><option value="">—</option>{% for c in cities %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
+        <div><label>Arrivée</label><input type="datetime-local" name="stops[{{ i }}][arrival]"></div>
+        <div><label>Départ</label><input type="datetime-local" name="stops[{{ i }}][departure]"></div>
+        <div><label>Point de RDV</label><input name="stops[{{ i }}][meeting]"></div>
+    </div>
+    {% endfor %}
+    <label>Note</label><input name="note" maxlength="255" style="width:100%">
+    <p><button type="button" id="suggest">Calculer distance, prix suggéré et carte</button> <strong id="sugg"></strong></p>
+    <div id="map" hidden></div>
+    <input type="hidden" name="_token" value="{{ csrf_token('trip') }}">
+    <p><button type="submit">Publier</button></p>
+</form></div>
+<script>
+let map, layer;
+document.getElementById('suggest').addEventListener('click', async () => {
+    const ids = [...document.querySelectorAll('.stopcity')].map(s => s.value).filter(Boolean);
+    const q = ids.map(i => 'cities[]=' + i).join('&') + '&rate=' + encodeURIComponent(document.getElementById('rate').value);
+    const r = await fetch('{{ path('app_trip_suggest') }}?' + q); const d = await r.json();
+    const out = document.getElementById('sugg');
+    if (!r.ok) { out.textContent = d.error; return; }
+    out.textContent = d.totalKm + ' km · prix suggéré ' + d.suggestedPrice + ' MAD (' + (d.source === 'osrm' ? 'distance routière OSRM' : 'estimation à vol d\'oiseau') + ')';
+    const m = document.getElementById('map'); m.hidden = false;
+    if (!map) { map = L.map('map'); L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '© OpenStreetMap'}).addTo(map); }
+    if (layer) layer.remove();
+    layer = L.featureGroup(d.points.map(p => L.marker([p.lat, p.lon]).bindTooltip(p.name))).addTo(map);
+    if (d.geometry) L.geoJSON(d.geometry).addTo(layer);
+    map.fitBounds(layer.getBounds());
+});
+</script>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+<div class="card"><h1>{{ profile.fullName }}</h1>
+    <p>Comme conducteur : {{ asDriver.average ? asDriver.average ~ ' / 5 (' ~ asDriver.count ~ ' avis)' : 'pas encore noté' }}<br>
+    Comme passager : {{ asPassenger.average ? asPassenger.average ~ ' / 5 (' ~ asPassenger.count ~ ' avis)' : 'pas encore noté' }}</p>
+</div>
+<h2>Avis reçus</h2>
+{% for r in reviews %}
+<div class="card"><strong>{{ r.rating }}/5</strong> — {{ r.author.firstName }} <span class="muted">({{ r.role.value == 'driver' ? 'conducteur' : 'passager' }} · {{ r.createdAt|date('d/m/Y') }})</span><br>{{ r.comment }}</div>
+{% else %}<p class="muted">Aucun avis.</p>{% endfor %}
+{% endblock %}

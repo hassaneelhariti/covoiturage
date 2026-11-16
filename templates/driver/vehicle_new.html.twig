@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+<div class="card" style="max-width:480px"><h1>Mon véhicule</h1>
+    <form method="post">
+        <label>Marque</label><input name="make" required>
+        <label>Modèle</label><input name="model" required>
+        <label>Couleur</label><input name="color" required>
+        <label>Plaque</label><input name="plate" required>
+        <label>Places totales (conducteur compris)</label><input type="number" name="seats" min="2" max="9" value="5" required>
+        <input type="hidden" name="_token" value="{{ csrf_token('vehicle') }}">
+        <p><button type="submit">Enregistrer</button></p>
+    </form>
+</div>
+{% endblock %}
