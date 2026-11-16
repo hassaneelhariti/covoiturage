@@ -1,0 +1,79 @@
+{% extends 'base.html.twig' %}
+{% block head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+{% endblock %}
+{% block body %}
+<div class="card">
+    <h1>{{ trip.stops.first.city.name }} → {{ trip.stops.last.city.name }}
+        <small class="muted">({{ trip.status.value }})</small></h1>
+    <p>Conducteur : <a href="{{ path('app_profile', {id: trip.driver.id}) }}">{{ trip.driver.fullName }}</a>
+        · {{ trip.vehicle.make }} {{ trip.vehicle.model }} {{ trip.vehicle.color }}
+        · {{ trip.ratePerKm }} MAD/km{% if trip.note %}<br><em>{{ trip.note }}</em>{% endif %}</p>
+    <table>
+        <tr><th>Arrêt</th><th>Arrivée</th><th>Départ</th><th>Point de RDV</th></tr>
+        {% for s in trip.stops %}
+            <tr><td>{{ s.position + 1 }}. {{ s.city.name }}</td><td>{{ s.arrivalAt|date('d/m H:i') }}</td><td>{{ s.departureAt|date('d/m H:i') }}</td><td>{{ s.meetingPoint }}</td></tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% if trip.routeGeometry %}<div class="card"><div id="map"></div></div>
+<script>
+const g = {{ trip.routeGeometry|json_encode|raw }};
+const map = L.map('map'); L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '© OpenStreetMap'}).addTo(map);
+const line = L.geoJSON(g).addTo(map); map.fitBounds(line.getBounds());
+</script>{% endif %}
+
+<div class="card">
+    <h2>Tronçons et places libres</h2>
+    <table>
+        <tr><th>Tronçon</th><th>Distance</th><th>Prix / place</th><th>Libres</th></tr>
+        {% for l in trip.legs %}
+            <tr><td>{{ l.fromStop.city.name }} → {{ l.toStop.city.name }}</td><td>{{ l.distanceKm }} km</td><td>{{ l.priceMad }} MAD</td><td>{{ l.remaining }} / {{ l.capacity }}</td></tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% if trip.status.value == 'published' %}
+<div class="card">
+    <h2>Réserver tout ou partie du parcours</h2>
+    {% if not app.user %}<p><a href="{{ path('app_login') }}">Connectez-vous</a> pour réserver.</p>
+    {% else %}
+    <form method="post" action="{{ path('app_trip_book', {id: trip.id}) }}" id="bookform" data-legs="{{ legsJson }}">
+        <div class="row">
+            <div><label>Montée</label><select name="from" id="from">{% for s in trip.stops|slice(0, trip.stops.count - 1) %}<option data-pos="{{ s.position }}" value="{{ s.id }}" {{ s.position == preFrom ? 'selected' }}>{{ s.city.name }}</option>{% endfor %}</select></div>
+            <div><label>Descente</label><select name="to" id="to">{% for s in trip.stops|slice(1) %}<option data-pos="{{ s.position }}" value="{{ s.id }}" {{ s.position == preTo ? 'selected' }}>{{ s.city.name }}</option>{% endfor %}</select></div>
+            <div><label>Places</label><select name="seats" id="seats">{% for i in 1..4 %}<option>{{ i }}</option>{% endfor %}</select></div>
+            <div><strong id="price"></strong></div>
+            <input type="hidden" name="_token" value="{{ csrf_token('book' ~ trip.id) }}">
+            <button type="submit">Réserver (paiement simulé)</button>
+        </div>
+    </form>
+    <script>
+    const f = document.getElementById('bookform'), legs = JSON.parse(f.dataset.legs);
+    function upd() {
+        const a = +f.from.selectedOptions[0].dataset.pos, b = +f.to.selectedOptions[0].dataset.pos, n = +f.seats.value;
+        const sel = legs.filter(l => l.p >= a && l.p < b);
+        document.getElementById('price').textContent = b <= a ? 'Descente avant la montée' :
+            sel.reduce((s, l) => s + l.price, 0) * n + ' MAD · ' + Math.min(...sel.map(l => l.free)) + ' place(s) libre(s)';
+    }
+    f.addEventListener('change', upd); upd();
+    </script>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if app.user and trip.driver.sameAs(app.user) %}
+<div class="card"><h2>Passagers</h2>
+    {% for b in passengers %}<p>{{ b.passenger.fullName }} — {{ b.boardingStop.city.name }} → {{ b.alightingStop.city.name }}, {{ b.seats }} place(s) <span class="muted">({{ b.status.value }})</span></p>
+    {% else %}<p class="muted">Aucun passager pour l'instant.</p>{% endfor %}
+</div>
+{% endif %}
+
+{% if pending %}
+<div class="card"><h2>Laisser un avis</h2>
+    {% for t in pending %}<a class="btn" href="{{ path('app_review_new', {tripId: trip.id, targetId: t.id}) }}">Noter {{ t.fullName }}</a> {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

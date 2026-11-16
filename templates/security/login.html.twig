@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+<div class="card" style="max-width:420px">
+    <h1>Connexion</h1>
+    {% if error %}<div class="flash error">{{ error.messageKey|trans(error.messageData, 'security') }}</div>{% endif %}
+    <form method="post">
+        <label for="u">E-mail</label><input id="u" type="email" name="_username" value="{{ last_username }}" required autofocus>
+        <label for="p">Mot de passe</label><input id="p" type="password" name="_password" required>
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+        <p><button type="submit">Se connecter</button></p>
+    </form>
+</div>
+{% endblock %}

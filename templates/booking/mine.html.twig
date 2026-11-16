@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+<h1>Mes réservations</h1>
+{% for b in bookings %}
+<div class="card">
+    <div class="row"><div style="flex:1">
+        <strong>{{ b.boardingStop.city.name }} → {{ b.alightingStop.city.name }}</strong> · {{ b.boardingStop.departureAt|date('d/m/Y H:i') }}<br>
+        <span class="muted">{{ b.reference }} · {{ b.seats }} place(s) · {{ b.totalPriceMad }} MAD · {{ b.status.value }}
+        {% if b.payment.refundedMad > 0 %}· remboursé {{ b.payment.refundedMad }} MAD{% endif %}</span><br>
+        <a href="{{ path('app_trip_show', {id: b.trip.id}) }}">Voir le trajet</a></div>
+        {% if b.status.value == 'confirmed' %}
+        <form method="post" action="{{ path('app_booking_cancel', {id: b.id}) }}" onsubmit="return confirm('Annuler ? Remboursement : 100 % si départ à plus de 24 h, 50 % entre 2 h et 24 h, 0 % sinon.')">
+            <input type="hidden" name="_token" value="{{ csrf_token('bcancel' ~ b.id) }}"><button class="danger">Annuler</button></form>
+        {% endif %}
+        {% for t in pending[b.id] %}<a class="btn" href="{{ path('app_review_new', {tripId: b.trip.id, targetId: t.id}) }}">Noter {{ t.fullName }}</a>{% endfor %}
+    </div>
+</div>
+{% else %}<p class="muted">Aucune réservation.</p>{% endfor %}
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+<p><a class="btn" href="{{ path('app_trip_new') }}">+ Publier un trajet</a> <a href="{{ path('app_vehicle_new') }}">Ajouter un véhicule</a></p>
+<h2>À venir</h2>
+{% for t in upcoming %}
+<div class="card">
+    <div class="row"><div style="flex:1"><a href="{{ path('app_trip_show', {id: t.id}) }}"><strong>{{ t }}</strong></a><br>
+        <span class="muted">{{ t.departureAt|date('d/m/Y H:i') }}</span></div>
+        <form method="post" action="{{ path('app_trip_complete', {id: t.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('complete' ~ t.id) }}"><button>Terminer</button></form>
+        <form method="post" action="{{ path('app_trip_cancel', {id: t.id}) }}" onsubmit="return confirm('Annuler ce trajet ? Tous les passagers seront remboursés.')"><input type="hidden" name="_token" value="{{ csrf_token('cancel' ~ t.id) }}"><button class="danger">Annuler</button></form>
+    </div>
+    {% for b in t.bookings %}{% if b.status.value == 'confirmed' %}<p>👤 {{ b.passenger.fullName }} : {{ b.boardingStop.city.name }} → {{ b.alightingStop.city.name }}, {{ b.seats }} place(s), {{ b.totalPriceMad }} MAD</p>{% endif %}{% endfor %}
+</div>
+{% else %}<p class="muted">Aucun trajet à venir.</p>{% endfor %}
+<h2>Historique</h2>
+{% for t in history %}
+<div class="card"><a href="{{ path('app_trip_show', {id: t.id}) }}">{{ t }}</a> — {{ t.status.value }} <span class="muted">· {{ t.departureAt|date('d/m/Y') }} · {{ t.bookings|length }} réservation(s)</span></div>
+{% else %}<p class="muted">Rien pour l'instant.</p>{% endfor %}
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+<div class="card">
+    <h1>Trouvez votre trajet</h1>
+    <form method="get" class="row">
+        <div><label for="from">Départ</label>
+            <select id="from" name="from" required><option value="">—</option>
+                {% for c in cities %}<option value="{{ c.id }}" {{ from and from.id == c.id ? 'selected' }}>{{ c.name }}</option>{% endfor %}</select></div>
+        <div><label for="to">Arrivée</label>
+            <select id="to" name="to" required><option value="">—</option>
+                {% for c in cities %}<option value="{{ c.id }}" {{ to and to.id == c.id ? 'selected' }}>{{ c.name }}</option>{% endfor %}</select></div>
+        <div><label for="date">Date</label><input id="date" type="date" name="date" value="{{ date }}" required></div>
+        <button type="submit">Rechercher</button>
+    </form>
+</div>
+{% if results is not null %}
+    {% if results is empty %}<div class="card muted">Aucun trajet ce jour-là entre ces deux villes.</div>{% endif %}
+    {% for r in results %}
+        <div class="card">
+            <div class="row">
+                <div style="flex:1">
+                    <strong>{{ r.from.city.name }} → {{ r.to.city.name }}</strong><br>
+                    Départ {{ r.from.departureAt|date('d/m H:i') }} · arrivée {{ r.to.arrivalAt|date('H:i') }}<br>
+                    <span class="muted">Conducteur : <a href="{{ path('app_profile', {id: r.trip.driver.id}) }}">{{ r.trip.driver.fullName }}</a>
+                    · trajet complet {{ r.trip.stops.first.city.name }} → {{ r.trip.stops.last.city.name }}</span>
+                </div>
+                <div><strong>{{ r.price }} MAD</strong> / place<br>{{ r.seats }} place(s) libre(s)</div>
+                <a class="btn" href="{{ path('app_trip_show', {id: r.trip.id, from: r.from.position, to: r.to.position}) }}">{{ r.seats > 0 ? 'Voir / réserver' : 'Voir (complet)' }}</a>
+            </div>
+        </div>
+    {% endfor %}
+{% endif %}
+{% endblock %}

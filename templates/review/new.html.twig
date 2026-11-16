@@ -1,0 +1,12 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+<div class="card" style="max-width:480px"><h1>Avis sur {{ target.fullName }}</h1>
+    <p class="muted">Trajet {{ trip }}</p>
+    <form method="post">
+        <label>Note</label><select name="rating">{% for i in 5..1 %}<option value="{{ i }}">{{ i }} / 5</option>{% endfor %}</select>
+        <label>Commentaire</label><textarea name="comment" rows="4" style="width:100%"></textarea>
+        <input type="hidden" name="_token" value="{{ csrf_token('review') }}">
+        <p><button type="submit">Envoyer</button></p>
+    </form>
+</div>
+{% endblock %}
